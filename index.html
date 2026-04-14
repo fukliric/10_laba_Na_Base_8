@@ -1,0 +1,593 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPA: Книги + Фильмы (лаб. 3 и 4)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background: #e9ecef;
+            border-bottom: 2px solid #ced4da;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 16px 24px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #2c3e50;
+        }
+
+            .tab-btn.active {
+                background: white;
+                color: #0d6efd;
+                border-bottom: 3px solid #0d6efd;
+                margin-bottom: -2px;
+            }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+
+        h2 {
+            margin-top: 0;
+            color: #1e466e;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 2;
+            display: flex;
+            gap: 8px;
+        }
+
+            .search-box input {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid #ccc;
+                border-radius: 40px;
+                font-size: 1rem;
+            }
+
+        button {
+            background: #0d6efd;
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            button:hover {
+                background: #0b5ed7;
+            }
+
+            button.danger {
+                background: #dc3545;
+            }
+
+                button.danger:hover {
+                    background: #b02a37;
+                }
+
+            button.secondary {
+                background: #6c757d;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .form-card {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 140px;
+        }
+
+            .form-group label {
+                display: block;
+                font-size: 0.8rem;
+                font-weight: 600;
+                margin-bottom: 4px;
+                color: #495057;
+            }
+
+            .form-group input {
+                width: 100%;
+                padding: 8px 10px;
+                border: 1px solid #ced4da;
+                border-radius: 12px;
+            }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #212529;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: 0.2s;
+        }
+
+        .inline-edit {
+            background: #fff3cd;
+        }
+
+        @media (max-width: 700px) {
+            .form-row {
+                flex-direction: column;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            td, th {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="books">📚 Книги (БД, лаб.4)</button>
+            <button class="tab-btn" data-tab="movies">🎬 Фильмы (In-Memory, лаб.3)</button>
+        </div>
+
+        <!-- Вкладка: Книги -->
+        <div id="books-tab" class="tab-content active">
+            <h2>Управление коллекцией книг</h2>
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="bookSearchInput" placeholder="Поиск по названию...">
+                    <button id="searchBookBtn">🔍 Искать</button>
+                    <button id="resetBookBtn" class="secondary">Сброс</button>
+                </div>
+                <button id="showAddBookFormBtn">➕ Добавить книгу</button>
+            </div>
+
+            <!-- Форма добавления / редактирования -->
+            <div id="bookFormCard" class="form-card" style="display: none;">
+                <h3 id="bookFormTitle">Добавить книгу</h3>
+                <div class="form-row">
+                    <div class="form-group"><label>Название *</label><input type="text" id="bookTitle" placeholder="Война и мир"></div>
+                    <div class="form-group"><label>Автор *</label><input type="text" id="bookAuthor" placeholder="Л. Толстой"></div>
+                    <div class="form-group"><label>Год</label><input type="number" id="bookYear" placeholder="1869"></div>
+                    <div class="form-group"><label>ISBN</label><input type="text" id="bookIsbn" placeholder="978-5-..."></div>
+                    <div class="actions">
+                        <button id="saveBookBtn">💾 Сохранить</button>
+                        <button id="cancelBookBtn" class="secondary">Отмена</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="booksTable">
+                    <thead>
+                        <tr><th>ID</th><th>Название</th><th>Автор</th><th>Год</th><th>ISBN</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody id="booksTableBody">
+                        <tr><td colspan="6">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Вкладка: Фильмы -->
+        <div id="movies-tab" class="tab-content">
+            <h2>Коллекция фильмов (словарь в памяти)</h2>
+            <div class="toolbar">
+                <button id="showAddMovieFormBtn">➕ Добавить фильм</button>
+            </div>
+            <div id="movieFormCard" class="form-card" style="display: none;">
+                <h3 id="movieFormTitle">Добавить фильм</h3>
+                <div class="form-row">
+                    <div class="form-group"><label>Ключ (id) *</label><input type="text" id="movieKey" placeholder="inception"></div>
+                    <div class="form-group"><label>Название *</label><input type="text" id="movieTitle" placeholder="Inception"></div>
+                    <div class="form-group"><label>Год *</label><input type="number" id="movieYear" placeholder="2010"></div>
+                    <div class="form-group"><label>Рейтинг *</label><input type="number" step="0.1" id="movieRating" placeholder="8.8"></div>
+                    <div class="actions">
+                        <button id="saveMovieBtn">💾 Сохранить</button>
+                        <button id="cancelMovieBtn" class="secondary">Отмена</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="moviesTable">
+                    <thead><tr><th>Ключ</th><th>Название</th><th>Год</th><th>Рейтинг</th><th>Действия</th></tr></thead>
+                    <tbody id="moviesTableBody"><tr><td colspan="5">Загрузка...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const API_BASE = 'http://localhost:8000';
+
+    let currentBookEditId = null;
+    let currentMovieEditKey = null;
+
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.style.backgroundColor = isError ? '#dc3545' : '#198754';
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // ---------- КНИГИ (БД) ----------
+    async function loadBooks(searchTitle = '') {
+        try {
+            let url = `${API_BASE}/books`;
+            if (searchTitle) url = `${API_BASE}/books/search?title=${encodeURIComponent(searchTitle)}`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const books = await resp.json();
+            renderBooksTable(books);
+        } catch (err) {
+            showToast(`Ошибка загрузки книг: ${err.message}`, true);
+            document.getElementById('booksTableBody').innerHTML = '<tr><td colspan="6">Ошибка подключения к API</td></tr>';
+        }
+    }
+
+    function renderBooksTable(books) {
+        const tbody = document.getElementById('booksTableBody');
+        if (!books.length) {
+            tbody.innerHTML = '<tr><td colspan="6">Нет книг. Добавьте первую!</td></tr>';
+            return;
+        }
+        tbody.innerHTML = books.map(book => `
+            <tr data-id="${book.id}">
+                <td>${book.id}</td>
+                <td>${escapeHtml(book.title)}</td>
+                <td>${escapeHtml(book.author)}</td>
+                <td>${book.year ?? '—'}</td>
+                <td>${book.isbn ?? '—'}</td>
+                <td class="actions">
+                    <button class="edit-book-btn" data-id="${book.id}">✏️ Редакт.</button>
+                    <button class="delete-book-btn danger" data-id="${book.id}">🗑 Удалить</button>
+                </td>
+            </tr>
+        `).join('');
+        document.querySelectorAll('.edit-book-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.dataset.id);
+                const book = books.find(b => b.id === id);
+                if (book) openBookEditForm(book);
+            });
+        });
+        document.querySelectorAll('.delete-book-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = parseInt(btn.dataset.id);
+                if (confirm('Удалить книгу?')) await deleteBookById(id);
+            });
+        });
+    }
+
+    async function deleteBookById(id) {
+        try {
+            const resp = await fetch(`${API_BASE}/books/${id}`, { method: 'DELETE' });
+            if (resp.status === 204) {
+                showToast('Книга удалена');
+                loadBooks(document.getElementById('bookSearchInput').value);
+            } else {
+                const err = await resp.json();
+                throw new Error(err.detail || 'Ошибка');
+            }
+        } catch (err) {
+            showToast(`Удаление не удалось: ${err.message}`, true);
+        }
+    }
+
+    async function saveBook(bookData, isEdit, id = null) {
+        try {
+            let url, method;
+            if (isEdit && id) {
+                url = `${API_BASE}/books/${id}`;
+                method = 'PUT';
+            } else {
+                url = `${API_BASE}/books`;
+                method = 'POST';
+            }
+            const resp = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookData)
+            });
+            if (!resp.ok) {
+                const error = await resp.json();
+                throw new Error(error.detail || 'Ошибка сохранения');
+            }
+            showToast(isEdit ? 'Книга обновлена' : 'Книга добавлена');
+            closeBookForm();
+            loadBooks(document.getElementById('bookSearchInput').value);
+        } catch (err) {
+            showToast(`Ошибка: ${err.message}`, true);
+        }
+    }
+
+    function openBookEditForm(book) {
+        currentBookEditId = book.id;
+        document.getElementById('bookFormTitle').innerText = 'Редактировать книгу';
+        document.getElementById('bookTitle').value = book.title;
+        document.getElementById('bookAuthor').value = book.author;
+        document.getElementById('bookYear').value = book.year ?? '';
+        document.getElementById('bookIsbn').value = book.isbn ?? '';
+        document.getElementById('bookFormCard').style.display = 'block';
+    }
+
+    function closeBookForm() {
+        currentBookEditId = null;
+        document.getElementById('bookFormCard').style.display = 'none';
+        document.getElementById('bookTitle').value = '';
+        document.getElementById('bookAuthor').value = '';
+        document.getElementById('bookYear').value = '';
+        document.getElementById('bookIsbn').value = '';
+        document.getElementById('bookFormTitle').innerText = 'Добавить книгу';
+    }
+
+    // ---------- ФИЛЬМЫ (in-memory) ----------
+    async function loadMovies() {
+        try {
+            const resp = await fetch(`${API_BASE}/movies`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const moviesObj = await resp.json();
+            const moviesList = Object.entries(moviesObj).map(([key, value]) => ({ key, ...value }));
+            renderMoviesTable(moviesList);
+        } catch (err) {
+            showToast(`Ошибка загрузки фильмов: ${err.message}`, true);
+            document.getElementById('moviesTableBody').innerHTML = '<tr><td colspan="5">Ошибка. Убедитесь, что добавлен GET /movies</td></tr>';
+        }
+    }
+
+    function renderMoviesTable(movies) {
+        const tbody = document.getElementById('moviesTableBody');
+        if (!movies.length) {
+            tbody.innerHTML = '<tr><td colspan="5">Нет фильмов. Добавьте первый!</td></tr>';
+            return;
+        }
+        tbody.innerHTML = movies.map(m => `
+            <tr data-key="${m.key}">
+                <td>${escapeHtml(m.key)}</td>
+                <td>${escapeHtml(m.title)}</td>
+                <td>${m.year}</td>
+                <td>${m.rating}</td>
+                <td class="actions">
+                    <button class="edit-movie-btn" data-key="${m.key}">✏️ Редакт.</button>
+                    <button class="delete-movie-btn danger" data-key="${m.key}">🗑 Удалить</button>
+                </td>
+            </tr>
+        `).join('');
+        document.querySelectorAll('.edit-movie-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.key;
+                const movie = movies.find(m => m.key === key);
+                if (movie) openMovieEditForm(movie);
+            });
+        });
+        document.querySelectorAll('.delete-movie-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const key = btn.dataset.key;
+                if (confirm('Удалить фильм?')) await deleteMovieByKey(key);
+            });
+        });
+    }
+
+    async function deleteMovieByKey(key) {
+        try {
+            const resp = await fetch(`${API_BASE}/delete-movie?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+            if (!resp.ok) throw new Error(await resp.text());
+            showToast('Фильм удалён');
+            loadMovies();
+        } catch (err) {
+            showToast(`Ошибка удаления: ${err.message}`, true);
+        }
+    }
+
+    async function saveMovie(movieData, isEdit, oldKey = null) {
+        try {
+            let url, method;
+            if (isEdit && oldKey) {
+                url = `${API_BASE}/update-movie/${oldKey}`;
+                method = 'PUT';
+                const payload = { title: movieData.title, year: movieData.year, rating: movieData.rating };
+                const resp = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!resp.ok) throw new Error(await resp.text());
+                showToast('Фильм обновлён');
+            } else {
+                const newKey = movieData.key;
+                url = `${API_BASE}/create-movie/${newKey}`;
+                method = 'POST';
+                const payload = { title: movieData.title, year: movieData.year, rating: movieData.rating };
+                const resp = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Фильм с таким ключом уже существует');
+                }
+                showToast('Фильм добавлен');
+            }
+            closeMovieForm();
+            loadMovies();
+        } catch (err) {
+            showToast(`Ошибка: ${err.message}`, true);
+        }
+    }
+
+    function openMovieEditForm(movie) {
+        currentMovieEditKey = movie.key;
+        document.getElementById('movieFormTitle').innerText = 'Редактировать фильм';
+        document.getElementById('movieKey').value = movie.key;
+        document.getElementById('movieKey').disabled = true;
+        document.getElementById('movieTitle').value = movie.title;
+        document.getElementById('movieYear').value = movie.year;
+        document.getElementById('movieRating').value = movie.rating;
+        document.getElementById('movieFormCard').style.display = 'block';
+    }
+
+    function closeMovieForm() {
+        currentMovieEditKey = null;
+        document.getElementById('movieFormCard').style.display = 'none';
+        document.getElementById('movieKey').disabled = false;
+        document.getElementById('movieKey').value = '';
+        document.getElementById('movieTitle').value = '';
+        document.getElementById('movieYear').value = '';
+        document.getElementById('movieRating').value = '';
+        document.getElementById('movieFormTitle').innerText = 'Добавить фильм';
+    }
+
+    // ---------- Инициализация UI ----------
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabs = { books: document.getElementById('books-tab'), movies: document.getElementById('movies-tab') };
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Object.values(tabs).forEach(t => t.classList.remove('active'));
+                tabs[tabName].classList.add('active');
+                if (tabName === 'books') loadBooks(document.getElementById('bookSearchInput').value);
+                else if (tabName === 'movies') loadMovies();
+            });
+        });
+
+        document.getElementById('searchBookBtn').addEventListener('click', () => {
+            loadBooks(document.getElementById('bookSearchInput').value);
+        });
+        document.getElementById('resetBookBtn').addEventListener('click', () => {
+            document.getElementById('bookSearchInput').value = '';
+            loadBooks('');
+        });
+        document.getElementById('showAddBookFormBtn').addEventListener('click', () => {
+            closeBookForm();
+            document.getElementById('bookFormCard').style.display = 'block';
+            document.getElementById('bookFormTitle').innerText = 'Добавить книгу';
+        });
+        document.getElementById('saveBookBtn').addEventListener('click', () => {
+            const title = document.getElementById('bookTitle').value.trim();
+            const author = document.getElementById('bookAuthor').value.trim();
+            if (!title || !author) { showToast('Название и автор обязательны', true); return; }
+            const year = document.getElementById('bookYear').value ? parseInt(document.getElementById('bookYear').value) : null;
+            const isbn = document.getElementById('bookIsbn').value.trim() || null;
+            const bookData = { title, author, year, isbn };
+            if (currentBookEditId) saveBook(bookData, true, currentBookEditId);
+            else saveBook(bookData, false);
+        });
+        document.getElementById('cancelBookBtn').addEventListener('click', closeBookForm);
+
+        document.getElementById('showAddMovieFormBtn').addEventListener('click', () => {
+            closeMovieForm();
+            document.getElementById('movieFormCard').style.display = 'block';
+            document.getElementById('movieFormTitle').innerText = 'Добавить фильм';
+        });
+        document.getElementById('saveMovieBtn').addEventListener('click', () => {
+            const key = document.getElementById('movieKey').value.trim();
+            const title = document.getElementById('movieTitle').value.trim();
+            const year = parseInt(document.getElementById('movieYear').value);
+            const rating = parseFloat(document.getElementById('movieRating').value);
+            if (!key || !title || isNaN(year) || isNaN(rating)) {
+                showToast('Заполните все поля (ключ, название, год, рейтинг)', true);
+                return;
+            }
+            const movieData = { key, title, year, rating };
+            if (currentMovieEditKey) saveMovie(movieData, true, currentMovieEditKey);
+            else saveMovie(movieData, false);
+        });
+        document.getElementById('cancelMovieBtn').addEventListener('click', closeMovieForm);
+
+        loadBooks('');
+        loadMovies();
+    });
+    </script>
+</body>
+</html>
